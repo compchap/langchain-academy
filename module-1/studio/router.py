@@ -14,7 +14,7 @@ def multiply(a: int, b: int) -> int:
     return a * b
 
 # LLM with bound tool
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
 llm_with_tools = llm.bind_tools([multiply])
 
 # Node
@@ -26,10 +26,13 @@ builder = StateGraph(MessagesState)
 builder.add_node("tool_calling_llm", tool_calling_llm)
 builder.add_node("tools", ToolNode([multiply]))
 builder.add_edge(START, "tool_calling_llm")
+# Add conditional edges from the "tool_calling_llm" node.
+# In LangGraph, conditional edges allow you to route the flow of the graph dynamically based on the state.
+# Here, tools_condition inspects the latest assistant message:
+#   - If the assistant's message contains a tool call, the flow is routed to the "tools" node.
+#   - If there is no tool call, the flow is routed to END, terminating the graph.
 builder.add_conditional_edges(
     "tool_calling_llm",
-    # If the latest message (result) from assistant is a tool call -> tools_condition routes to tools
-    # If the latest message (result) from assistant is a not a tool call -> tools_condition routes to END
     tools_condition,
 )
 builder.add_edge("tools", END)
